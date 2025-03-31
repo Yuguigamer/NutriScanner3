@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Button, Dimensions, Vibration } from 'react-native';
+import { StyleSheet, View, Button, Dimensions, Vibration, ActivityIndicator } from 'react-native';
 import { Camera, CameraView } from 'expo-camera';
+import { BarcodeScanningResult } from 'expo-camera/build/Camera.types';
 import { ThemedView } from './ThemedView';
 import { ThemedText } from './ThemedText';
 import { Ionicons } from '@expo/vector-icons';
+import { foodDB } from '../lib/supabase';
+import type { Alimento } from '../lib/supabase';
 
 interface BarcodeScannerProps {
-  onScan: (data: string) => void;
+  onScan: (alimento: Alimento | null, barcode: string) => void;
   onClose: () => void;
 }
 
@@ -14,6 +17,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isScanning, setIsScanning] = useState(true);
   const [torch, setTorch] = useState<'on' | 'off'>('off');
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     const getCameraPermissions = async () => {
@@ -24,12 +28,22 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
     getCameraPermissions();
   }, []);
 
-  const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
-    if (!isScanning) return;
+  const handleBarCodeScanned = async ({ type, data }: BarcodeScanningResult) => {
+    if (!isScanning || isSearching) return;
     
     setIsScanning(false);
+    setIsSearching(true);
     Vibration.vibrate(100); // Haptic feedback
-    onScan(data);
+
+    try {
+      const alimento = await foodDB.getFoodByBarcode(data);
+      onScan(alimento, data);
+    } catch (error) {
+      console.error('Error al buscar el alimento:', error);
+      onScan(null, data);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const toggleTorch = () => {
@@ -62,7 +76,7 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
         enableTorch={torch === 'on'}
         onBarcodeScanned={isScanning ? handleBarCodeScanned : undefined}
         barcodeScannerSettings={{
-          barCodeTypes: ['ean13', 'ean8', 'upc'],
+          barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e'],
         }}
       />
       <View style={styles.scanFrame}>
@@ -75,13 +89,17 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
         <ThemedText style={styles.overlayText}>
           Apunta al código de barras del producto
         </ThemedText>
-        <View style={styles.buttonContainer}>
-          <Button title="Cancelar" onPress={onClose} />
-          <Button 
-            title={torch === 'on' ? "Apagar Luz" : "Encender Luz"} 
-            onPress={toggleTorch} 
-          />
-        </View>
+        {isSearching ? (
+          <ActivityIndicator size="large" color="#fff" />
+        ) : (
+          <View style={styles.buttonContainer}>
+            <Button title="Cancelar" onPress={onClose} />
+            <Button 
+              title={torch === 'on' ? "Apagar Luz" : "Encender Luz"} 
+              onPress={toggleTorch} 
+            />
+          </View>
+        )}
       </View>
     </ThemedView>
   );
