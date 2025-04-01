@@ -13,6 +13,7 @@ interface FavoriteItem {
   id: string;
   nombre: string;
   calorias: number;
+  proteinas?: number;
 }
 
 const STORAGE_KEYS = {
@@ -77,7 +78,8 @@ export default function TabOneScreen() {
         const newFavorite: FavoriteItem = {
           id: alimento.id,
           nombre: alimento.nombre,
-          calorias: alimento.calorias
+          calorias: alimento.calorias,
+          proteinas: alimento.proteinas,
         };
         updatedFavorites = [...favorites, newFavorite];
       }
@@ -191,6 +193,7 @@ export default function TabOneScreen() {
                       <ThemedView style={styles.searchResultMain}>
                         <ThemedText type="defaultSemiBold">{item.nombre}</ThemedText>
                         <ThemedText>{item.calorias} kcal</ThemedText>
+                        <ThemedText>{item.proteinas ?? '-'} proteina</ThemedText>
                       </ThemedView>
                       <TouchableOpacity 
                         onPress={() => toggleFavorite(item)}
@@ -242,6 +245,7 @@ export default function TabOneScreen() {
               >
                 <ThemedText type="defaultSemiBold">{item.nombre}</ThemedText>
                 <ThemedText>{item.calorias} kcal</ThemedText>
+                <ThemedText>{item.proteinas ?? '-'} p</ThemedText>
                 <TouchableOpacity 
                   onPress={() => toggleFavorite(item as Alimento)}
                   style={styles.favoriteButton}
