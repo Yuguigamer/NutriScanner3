@@ -62,9 +62,10 @@ export const foodDB = {
   async searchFoods(query: string): Promise<Alimento[]> {
     const { data, error } = await supabase
       .from('alimentos')
-      .select('*')
+      .select('id, nombre, codigo, calorias, proteinas, carbohidratos, grasas, azucares, fibra, sodio, imagen_url, created_at')
       .ilike('nombre', `%${query}%`)
-      .limit(20);
+      .order('nombre')
+      .limit(10);
     
     if (error) {
       console.error('Error searching alimentos:', error);
@@ -90,5 +91,3 @@ export const foodDB = {
     return data;
   }
 };
-
-

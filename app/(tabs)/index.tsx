@@ -1,95 +1,101 @@
-import { Image, StyleSheet, TextInput, TouchableOpacity, ScrollView, Modal, Alert, ActivityIndicator } from 'react-native';
+import { Image, StyleSheet, TextInput, TouchableOpacity, ScrollView, Modal, Alert, ActivityIndicator, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
 import { BarcodeScanner } from '@/components/BarcodeScanner';
-import { useState, useEffect } from 'react';
+import { ProductDetailCard } from '@/components/ProductDetailCard';
+import ParallaxScrollView from '@/components/ParallaxScrollView';
+import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Alimento } from '@/lib/supabase';
 import { foodDB } from '@/lib/supabase';
 import { router } from 'expo-router';
-
-interface FavoriteItem {
-  id: string;
-  nombre: string;
-  calorias: number;
-  proteinas?: number;
-}
-
-const STORAGE_KEYS = {
-  RECENT_SEARCHES: 'recent_searches',
-  FAVORITES: 'favorites'
-};
-
-const MAX_RECENT_SEARCHES = 5;
+import { LinearGradient } from 'expo-linear-gradient';
+import { useFocusEffect } from '@react-navigation/native';
 
 export default function TabOneScreen() {
-  const [searchQuery, setSearchQuery] = useState('');
   const [isScannerVisible, setIsScannerVisible] = useState(false);
   const [scannedAlimento, setScannedAlimento] = useState<Alimento | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [favorites, setFavorites] = useState<FavoriteItem[]>([]);
   const [searchResults, setSearchResults] = useState<Alimento[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [selectedAlimento, setSelectedAlimento] = useState<Alimento | null>(null);
+  const [favorites, setFavorites] = useState<Alimento[]>([]);
 
-  // Load saved data on component mount
-  useEffect(() => {
-    loadSavedData();
-  }, []);
+  // Cargar datos guardados cuando la pantalla obtiene el foco
+  useFocusEffect(
+    useCallback(() => {
+      loadRecentSearches();
+      loadFavorites();
+    }, [])
+  );
 
-  const loadSavedData = async () => {
+  const loadRecentSearches = useCallback(async () => {
     try {
-      const [savedSearches, savedFavorites] = await Promise.all([
-        AsyncStorage.getItem(STORAGE_KEYS.RECENT_SEARCHES),
-        AsyncStorage.getItem(STORAGE_KEYS.FAVORITES)
-      ]);
-
-      if (savedSearches) {
-        setRecentSearches(JSON.parse(savedSearches));
-      }
-      if (savedFavorites) {
-        setFavorites(JSON.parse(savedFavorites));
+      const searches = await AsyncStorage.getItem('recentSearches');
+      if (searches) {
+        setRecentSearches(JSON.parse(searches));
       }
     } catch (error) {
-      console.error('Error loading saved data:', error);
+      console.error('Error loading recent searches:', error);
     }
-  };
+  }, []);
+
+  const loadFavorites = useCallback(async () => {
+    try {
+      const favoritesJson = await AsyncStorage.getItem('favorites');
+      if (favoritesJson) {
+        setFavorites(JSON.parse(favoritesJson));
+      }
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+    }
+  }, []);
 
   const addToRecentSearches = async (query: string) => {
     try {
-      const updatedSearches = [query, ...recentSearches.filter(item => item !== query)]
-        .slice(0, MAX_RECENT_SEARCHES);
+      const newSearches = [
+        query,
+        ...recentSearches.filter(s => s !== query)
+      ].slice(0, 5);
       
-      setRecentSearches(updatedSearches);
-      await AsyncStorage.setItem(STORAGE_KEYS.RECENT_SEARCHES, JSON.stringify(updatedSearches));
+      setRecentSearches(newSearches);
+      await AsyncStorage.setItem('recentSearches', JSON.stringify(newSearches));
     } catch (error) {
       console.error('Error saving recent search:', error);
     }
   };
 
+  const clearRecentSearches = async () => {
+    try {
+      await AsyncStorage.removeItem('recentSearches');
+      setRecentSearches([]);
+    } catch (error) {
+      console.error('Error clearing recent searches:', error);
+    }
+  };
+
   const toggleFavorite = async (alimento: Alimento) => {
     try {
-      const isFavorite = favorites.some(item => item.id === alimento.id);
-      let updatedFavorites: FavoriteItem[];
-
+      const isFavorite = favorites.some(fav => fav.id === alimento.id);
+      let newFavorites;
+      
       if (isFavorite) {
-        updatedFavorites = favorites.filter(item => item.id !== alimento.id);
+        newFavorites = favorites.filter(fav => fav.id !== alimento.id);
       } else {
-        const newFavorite: FavoriteItem = {
-          id: alimento.id,
-          nombre: alimento.nombre,
-          calorias: alimento.calorias,
-          proteinas: alimento.proteinas,
-        };
-        updatedFavorites = [...favorites, newFavorite];
+        newFavorites = [...favorites, alimento];
       }
-
-      setFavorites(updatedFavorites);
-      await AsyncStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(updatedFavorites));
+      
+      setFavorites(newFavorites);
+      await AsyncStorage.setItem('favorites', JSON.stringify(newFavorites));
     } catch (error) {
-      console.error('Error updating favorites:', error);
+      console.error('Error toggling favorite:', error);
     }
+  };
+
+  const isFavorite = (alimento: Alimento) => {
+    return favorites.some(fav => fav.id === alimento.id);
   };
 
   const handleSearch = async (query: string) => {
@@ -99,6 +105,8 @@ export default function TabOneScreen() {
       setSearchResults([]);
       return;
     }
+
+    if (query.trim().length < 2) return;
 
     setIsSearching(true);
     try {
@@ -113,11 +121,10 @@ export default function TabOneScreen() {
     }
   };
 
-  // Debounce search input
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       handleSearch(searchQuery);
-    }, 500);
+    }, 800);
 
     return () => clearTimeout(timeoutId);
   }, [searchQuery]);
@@ -126,25 +133,12 @@ export default function TabOneScreen() {
     setIsScannerVisible(false);
     
     if (alimento) {
-      setScannedAlimento(alimento);
-      handleSearch(alimento.nombre);
+      setSelectedAlimento(alimento);
     } else {
-      Alert.alert(
-        'Alimento no encontrado',
-        '¿Deseas agregar este producto a la base de datos?',
-        [
-          {
-            text: 'No',
-            style: 'cancel'
-          },
-          {
-            text: 'Sí',
-            onPress: () => {
-              router.push(`/agregar-alimento?barcode=${barcode}`);
-            }
-          }
-        ]
-      );
+      router.push({
+        pathname: "/agregar-alimento",
+        params: { barcode }
+      });
     }
   };
 
@@ -153,17 +147,27 @@ export default function TabOneScreen() {
       <ParallaxScrollView
         headerBackgroundColor={{ light: '#4CAF50', dark: '#1B5E20' }}
         headerImage={
-          <Image
-            source={require('@/assets/images/partial-react-logo.png')}
-            style={styles.logo}
-          />
-        }>
-        <ThemedView style={styles.container}>
+          <View style={styles.headerImageContainer}>
+            <LinearGradient
+              colors={['#4CAF50', '#2E7D32']}
+              style={styles.headerGradient}
+            >
+              <View style={styles.headerOverlay}>
+                <ThemedText type="title" style={styles.headerTitle}>NutriScan</ThemedText>
+                <ThemedText style={styles.headerSubtitle}>
+                  Escanea y descubre la información nutricional
+                </ThemedText>
+              </View>
+            </LinearGradient>
+          </View>
+        }
+      >
+        <View style={styles.content}>
           {/* Barra de búsqueda */}
-          <ThemedView style={styles.searchContainer}>
+          <ThemedView style={styles.searchBar}>
             <TextInput
               style={styles.searchInput}
-              placeholder="Buscar alimento..."
+              placeholder="Buscar alimentos..."
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
@@ -171,9 +175,32 @@ export default function TabOneScreen() {
               style={styles.scanButton}
               onPress={() => setIsScannerVisible(true)}
             >
-              <Ionicons name="barcode-outline" size={24} color="#4CAF50" />
+              <Ionicons name="barcode-outline" size={24} color="#666" />
             </TouchableOpacity>
           </ThemedView>
+
+          {/* Búsquedas recientes */}
+          {searchQuery.trim().length === 0 && recentSearches.length > 0 && (
+            <ThemedView style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <ThemedText type="subtitle">Búsquedas recientes</ThemedText>
+                <TouchableOpacity onPress={clearRecentSearches}>
+                  <ThemedText style={styles.clearButton}>Limpiar</ThemedText>
+                </TouchableOpacity>
+              </View>
+              <ScrollView horizontal style={styles.recentSearches}>
+                {recentSearches.map((search, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.recentSearchItem}
+                    onPress={() => setSearchQuery(search)}
+                  >
+                    <ThemedText>{search}</ThemedText>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </ThemedView>
+          )}
 
           {/* Resultados de búsqueda */}
           {isSearching ? (
@@ -185,83 +212,33 @@ export default function TabOneScreen() {
               <ThemedText type="subtitle">Resultados</ThemedText>
               <ScrollView style={styles.searchResults}>
                 {searchResults.map((item) => (
-                  <TouchableOpacity 
-                    key={item.id} 
-                    style={styles.searchResultItem}
-                    onPress={() => setScannedAlimento(item)}
-                  >
-                    <ThemedView style={styles.searchResultContent}>
-                      <ThemedView style={styles.searchResultMain}>
-                        <ThemedText type="defaultSemiBold">{item.nombre}</ThemedText>
-                        <ThemedText>{item.calorias} kcal</ThemedText>
-                        <ThemedText>{item.proteinas ?? '-'} proteina</ThemedText>
-                      </ThemedView>
-                      <TouchableOpacity 
-                        onPress={() => toggleFavorite(item)}
-                        style={styles.favoriteButton}
-                      >
-                        <Ionicons 
-                          name={favorites.some(fav => fav.id === item.id) ? "heart" : "heart-outline"} 
-                          size={24} 
-                          color="#FF4081" 
-                        />
-                      </TouchableOpacity>
-                    </ThemedView>
-                  </TouchableOpacity>
+                  <ProductDetailCard
+                    key={item.id}
+                    alimento={item}
+                    isFavorite={isFavorite(item)}
+                    onToggleFavorite={() => toggleFavorite(item)}
+                    expanded={selectedAlimento?.id === item.id}
+                    onPress={() => setSelectedAlimento(selectedAlimento?.id === item.id ? null : item)}
+                  />
                 ))}
               </ScrollView>
             </ThemedView>
           ) : searchQuery.trim().length > 0 && (
             <ThemedView style={[styles.section, styles.noResults]}>
-              <ThemedText>No se encontraron resultados</ThemedText>
+              <Ionicons name="search" size={48} color="#666" />
+              <ThemedText style={styles.noResultsText}>
+                No se encontraron resultados
+              </ThemedText>
             </ThemedView>
           )}
-
-          {/* Búsquedas recientes (solo mostrar si no hay búsqueda activa) */}
-          {searchQuery.trim().length === 0 && (
-            <ThemedView style={styles.section}>
-              <ThemedText type="subtitle">Búsquedas Recientes</ThemedText>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recentSearches}>
-                {recentSearches.map((item, index) => (
-                  <TouchableOpacity 
-                    key={index} 
-                    style={styles.recentItem}
-                    onPress={() => handleSearch(item)}
-                  >
-                    <ThemedText>{item}</ThemedText>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </ThemedView>
-          )}
-
-          {/* Favoritos */}
-          <ThemedView style={styles.section}>
-            <ThemedText type="subtitle">Mis Favoritos</ThemedText>
-            {favorites.map((item) => (
-              <TouchableOpacity 
-                key={item.id} 
-                style={styles.favoriteItem}
-                onPress={() => handleSearch(item.nombre)}
-              >
-                <ThemedText type="defaultSemiBold">{item.nombre}</ThemedText>
-                <ThemedText>{item.calorias} kcal</ThemedText>
-                <ThemedText>{item.proteinas ?? '-'} p</ThemedText>
-                <TouchableOpacity 
-                  onPress={() => toggleFavorite(item as Alimento)}
-                  style={styles.favoriteButton}
-                >
-                  <Ionicons name="heart" size={24} color="#FF4081" />
-                </TouchableOpacity>
-              </TouchableOpacity>
-            ))}
-          </ThemedView>
-        </ThemedView>
+        </View>
       </ParallaxScrollView>
 
+      {/* Modal del scanner */}
       <Modal
-        visible={isScannerVisible}
         animationType="slide"
+        transparent={true}
+        visible={isScannerVisible}
         onRequestClose={() => setIsScannerVisible(false)}
       >
         <BarcodeScanner
@@ -276,128 +253,118 @@ export default function TabOneScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
   },
-  logo: {
-    width: 50,
-    height: 50,
-    resizeMode: 'contain',
-  },
-  searchContainer: {
-    flexDirection: 'row',
+  headerImageContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+  },
+  headerGradient: {
+    width: '100%',
+    height: '100%',
+  },
+  headerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  headerSubtitle: {
+    color: '#fff',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 8,
+  },
+  content: {
+    flex: 1,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    padding: 16,
+    gap: 8,
   },
   searchInput: {
     flex: 1,
-    height: 40,
-    marginRight: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F5',
+    height: 44,
+    backgroundColor: '#fff',
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    fontSize: 16,
   },
   scanButton: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: '#F5F5F5',
+    width: 44,
+    height: 44,
+    backgroundColor: '#fff',
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  clearButton: {
+    color: '#666',
+    fontSize: 14,
   },
   recentSearches: {
-    marginTop: 8,
+    flexGrow: 0,
   },
-  recentItem: {
-    backgroundColor: '#E8F5E9',
+  recentSearchItem: {
+    backgroundColor: '#fff',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 16,
     marginRight: 8,
   },
-  favoriteItem: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    marginTop: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
-    elevation: 3,
-  },
-  scannedFoodContainer: {
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: '#F5F5F5',
-  },
-  foodTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  nutrientGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginHorizontal: -8,
-  },
-  nutrientItem: {
-    width: '50%',
-    padding: 8,
-  },
-  nutrientValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-  },
-  nutrientLabel: {
-    fontSize: 14,
-    color: '#666',
-  },
-  favoriteButton: {
-    position: 'absolute',
-    right: 16,
-    top: '50%',
-    transform: [{ translateY: -12 }],
-  },
-  loadingContainer: {
-    padding: 20,
-    alignItems: 'center',
-  },
   searchResults: {
-    maxHeight: 300,
+    marginTop: 8,
   },
   searchResultItem: {
     marginBottom: 8,
-    padding: 16,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
   },
   searchResultContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
   },
   searchResultMain: {
     flex: 1,
-    marginRight: 16,
+    paddingRight: 8,
+  },
+  nutritionRow: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 4,
+  },
+  nutritionText: {
+    fontSize: 12,
+    opacity: 0.8,
+  },
+  loadingContainer: {
+    padding: 32,
+    alignItems: 'center',
   },
   noResults: {
     alignItems: 'center',
-    padding: 20,
+    padding: 32,
+  },
+  noResultsText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
 });
