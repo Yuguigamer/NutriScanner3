@@ -61,6 +61,20 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (<Ionicons name="person" size={24} color={color} />),
         }}
       />
+      <Tabs.Screen
+        name="food-comparison"
+        options={{
+          title: 'Comparar',
+          tabBarIcon: ({ color }) => (<Ionicons name="bar-chart" size={24} color={color} />),
+        }}
+      />
+      <Tabs.Screen
+        name="search-history"
+        options={{
+          title: 'Historial de búsquedas',
+          tabBarIcon: ({ color }) => (<Ionicons name="search" size={24} color={color} />),
+        }}
+      />
     </Tabs>
   );
 }

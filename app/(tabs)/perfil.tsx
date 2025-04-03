@@ -60,11 +60,6 @@ export default function PerfilScreen() {
     loadProfile();
   }, [loadProfile]);
 
-  // Memorizar el avatar actual para evitar re-renders innecesarios
-  const currentAvatar = useMemo(() => {
-    return AVATARS[profile?.avatar_index || 0];
-  }, [profile?.avatar_index]);
-
   const handleUpdateProfile = async () => {
     if (!session?.user || !editingName.trim()) {
       Alert.alert('Error', 'Por favor ingresa un nombre válido');
@@ -113,20 +108,26 @@ export default function PerfilScreen() {
     }
   };
 
-  const openEditModal = () => {
-    setEditingName(profile?.name || '');
-    setEditingAvatarIndex(profile?.avatar_index || 0);
-    setIsEditModalVisible(true);
-  };
-
   if (loading) {
     return (
       <ThemedView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Ionicons name="hourglass-outline" size={40} color="#666" />
-          <ThemedText style={styles.loadingText}>
-            {isSigningOut ? 'Cerrando sesión...' : 'Cargando perfil...'}
-          </ThemedText>
+        <LinearGradient
+          colors={['#4CAF50', '#1B5E20']}
+          style={styles.header}
+        >
+          <View style={styles.headerContent}>
+            <ThemedText type="title" style={styles.title}>Mi Perfil</ThemedText>
+            <ThemedText style={styles.subtitle}>Información de la cuenta</ThemedText>
+          </View>
+        </LinearGradient>
+
+        <View style={styles.content}>
+          <View style={styles.loadingContainer}>
+            <Ionicons name="hourglass-outline" size={40} color="#666" />
+            <ThemedText style={styles.loadingText}>
+              {isSigningOut ? 'Cerrando sesión...' : 'Cargando perfil...'}
+            </ThemedText>
+          </View>
         </View>
       </ThemedView>
     );
@@ -136,112 +137,122 @@ export default function PerfilScreen() {
     <ThemedView style={styles.container}>
       <LinearGradient
         colors={['#4CAF50', '#1B5E20']}
-        style={styles.profileHeader}
+        style={styles.header}
       >
-        <TouchableOpacity 
-          style={styles.avatarContainer}
-          onPress={openEditModal}
-        >
-          <Image
-            source={currentAvatar}
-            style={styles.avatar}
-            resizeMode="cover"
-          />
-          <View style={styles.editOverlay}>
-            <Ionicons name="pencil" size={24} color="#fff" />
-          </View>
-        </TouchableOpacity>
-        <View style={styles.userInfo}>
-          <ThemedText style={styles.name}>{profile?.name || 'Usuario'}</ThemedText>
-          <View style={styles.emailContainer}>
-            <Ionicons name="mail-outline" size={16} color="#fff" />
-            <ThemedText style={[styles.email, { color: '#fff' }]}>{profile?.email}</ThemedText>
-          </View>
+        <View style={styles.headerContent}>
+          <ThemedText type="title" style={styles.title}>Mi Perfil</ThemedText>
+          <ThemedText style={styles.subtitle}>Información de la cuenta</ThemedText>
         </View>
       </LinearGradient>
 
-      <View style={styles.menuContainer}>
-        <TouchableOpacity style={styles.menuItem} onPress={openEditModal}>
-          <Ionicons name="person-outline" size={24} color="#666" />
-          <ThemedText style={styles.menuText}>Editar Perfil</ThemedText>
+      <View style={styles.content}>
+        <View style={styles.profileSection}>
+          <Image 
+            source={AVATARS[profile?.avatar_index || 0]}
+            style={styles.avatar}
+          />
+          <View style={styles.profileInfo}>
+            <ThemedText style={styles.name}>{profile?.name || 'Usuario'}</ThemedText>
+            <ThemedText style={styles.email}>{profile?.email || session?.user?.email}</ThemedText>
+          </View>
+          <TouchableOpacity 
+            style={styles.editButton}
+            onPress={() => {
+              setEditingName(profile?.name || '');
+              setEditingAvatarIndex(profile?.avatar_index || 0);
+              setIsEditModalVisible(true);
+            }}
+          >
+            <Ionicons name="pencil" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.menuContainer}>
+          <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="settings-outline" size={24} color="#666" />
+            <ThemedText style={styles.menuText}>Configuración</ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="help-circle-outline" size={24} color="#666" />
+            <ThemedText style={styles.menuText}>Ayuda</ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={() => router.push('/about')}
+          >
+            <Ionicons name="people-outline" size={24} color="#666" />
+            <ThemedText style={styles.menuText}>Sobre Nosotros</ThemedText>
+          </TouchableOpacity>
+        </View>
+
+        <TouchableOpacity 
+          style={[styles.logoutButton, isSigningOut && styles.logoutButtonDisabled]}
+          onPress={handleLogout}
+          disabled={isSigningOut}
+        >
+          <Ionicons name="log-out-outline" size={24} color="#fff" />
+          <ThemedText style={styles.logoutText}>
+            {isSigningOut ? 'Cerrando sesión...' : 'Cerrar Sesión'}
+          </ThemedText>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="settings-outline" size={24} color="#666" />
-          <ThemedText style={styles.menuText}>Configuración</ThemedText>
-        </TouchableOpacity>
+        <Modal
+          visible={isEditModalVisible}
+          animationType="slide"
+          transparent={true}
+          onRequestClose={() => setIsEditModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <ThemedText style={styles.modalTitle}>Editar Perfil</ThemedText>
+              
+              <TextInput
+                style={styles.input}
+                value={editingName}
+                onChangeText={setEditingName}
+                placeholder="Nombre"
+                placeholderTextColor="#999"
+              />
 
-        <TouchableOpacity style={styles.menuItem}>
-          <Ionicons name="help-circle-outline" size={24} color="#666" />
-          <ThemedText style={styles.menuText}>Ayuda</ThemedText>
-        </TouchableOpacity>
-      </View>
+              <ThemedText style={styles.avatarTitle}>Selecciona un avatar</ThemedText>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.avatarList}>
+                {Object.entries(AVATARS).map(([index, source]) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.avatarOption,
+                      editingAvatarIndex === Number(index) && styles.selectedAvatar
+                    ]}
+                    onPress={() => setEditingAvatarIndex(Number(index))}
+                  >
+                    <Image source={source} style={styles.avatarImage} />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
 
-      <TouchableOpacity 
-        style={[styles.logoutButton, isSigningOut && styles.logoutButtonDisabled]}
-        onPress={handleLogout}
-        disabled={isSigningOut}
-      >
-        <Ionicons name="log-out-outline" size={24} color="#fff" />
-        <ThemedText style={styles.logoutText}>
-          {isSigningOut ? 'Cerrando sesión...' : 'Cerrar Sesión'}
-        </ThemedText>
-      </TouchableOpacity>
-
-      <Modal
-        visible={isEditModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsEditModalVisible(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <ThemedText style={styles.modalTitle}>Editar Perfil</ThemedText>
-            
-            <TextInput
-              style={styles.input}
-              value={editingName}
-              onChangeText={setEditingName}
-              placeholder="Nombre"
-              placeholderTextColor="#999"
-            />
-
-            <ThemedText style={styles.avatarTitle}>Selecciona un avatar</ThemedText>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.avatarList}>
-              {Object.entries(AVATARS).map(([index, source]) => (
+              <View style={styles.modalButtons}>
                 <TouchableOpacity
-                  key={index}
-                  style={[
-                    styles.avatarOption,
-                    editingAvatarIndex === Number(index) && styles.selectedAvatar
-                  ]}
-                  onPress={() => setEditingAvatarIndex(Number(index))}
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setIsEditModalVisible(false)}
                 >
-                  <Image source={source} style={styles.avatarImage} />
+                  <ThemedText style={styles.buttonText}>Cancelar</ThemedText>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setIsEditModalVisible(false)}
-              >
-                <ThemedText style={styles.buttonText}>Cancelar</ThemedText>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.saveButton, isSaving && styles.disabledButton]}
-                onPress={handleUpdateProfile}
-                disabled={isSaving}
-              >
-                <ThemedText style={styles.buttonText}>
-                  {isSaving ? 'Guardando...' : 'Guardar'}
-                </ThemedText>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.saveButton, isSaving && styles.disabledButton]}
+                  onPress={handleUpdateProfile}
+                  disabled={isSaving}
+                >
+                  <ThemedText style={styles.buttonText}>
+                    {isSaving ? 'Guardando...' : 'Guardar'}
+                  </ThemedText>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
+        </Modal>
+      </View>
     </ThemedView>
   );
 }
@@ -249,64 +260,84 @@ export default function PerfilScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
   },
-  profileHeader: {
-    padding: 24,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
+  header: {
+    margin: 16,
+    marginTop: 24,
+    paddingTop: 16,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    borderRadius: 24,
   },
-  avatarContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginBottom: 16,
-    alignSelf: 'center',
-    backgroundColor: '#fff',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  avatar: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 50,
-  },
-  editOverlay: {
-    position: 'absolute',
-    right: -4,
-    bottom: -4,
-    backgroundColor: '#4CAF50',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-  },
-  userInfo: {
+  headerContent: {
     alignItems: 'center',
   },
-  name: {
+  title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 8,
     color: '#fff',
+    textAlign: 'center',
   },
-  emailContainer: {
+  subtitle: {
+    fontSize: 16,
+    color: '#fff',
+    textAlign: 'center',
+    marginTop: 8,
+    opacity: 0.9,
+  },
+  content: {
+    flex: 1,
+    padding: 16,
+  },
+  profileSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginRight: 16,
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  name: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
   },
   email: {
     fontSize: 16,
     opacity: 0.9,
+  },
+  editButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#4CAF50',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
   },
   menuContainer: {
     marginBottom: 30,

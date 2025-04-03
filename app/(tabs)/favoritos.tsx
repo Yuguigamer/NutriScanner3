@@ -44,19 +44,15 @@ export default function FavoritosScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <View style={styles.header}>
-        <LinearGradient
-          colors={['#4CAF50', '#2E7D32']}
-          style={styles.headerGradient}
-        >
-          <View style={styles.headerContent}>
-            <ThemedText style={styles.headerTitle}>Mis Favoritos</ThemedText>
-            <ThemedText style={styles.headerSubtitle}>
-              Tus alimentos guardados
-            </ThemedText>
-          </View>
-        </LinearGradient>
-      </View>
+      <LinearGradient
+        colors={['#4CAF50', '#1B5E20']}
+        style={styles.header}
+      >
+        <View style={styles.headerContent}>
+          <ThemedText type="title" style={styles.title}>Mis Favoritos</ThemedText>
+          <ThemedText style={styles.subtitle}>Lista de alimentos favoritos</ThemedText>
+        </View>
+      </LinearGradient>
 
       <ScrollView style={styles.scrollView}>
         {favorites.length === 0 ? (
@@ -90,28 +86,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    height: 150,
-    overflow: 'hidden',
-  },
-  headerGradient: {
-    flex: 1,
+    margin: 16,
+    marginTop: 24,
+    paddingTop: 16,
+    paddingBottom: 16,
+    paddingHorizontal: 16,
+    borderRadius: 24,
   },
   headerContent: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    padding: 16,
-    backgroundColor: 'rgba(0,0,0,0.2)',
   },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 32,
+  title: {
+    fontSize: 24,
     fontWeight: 'bold',
+    color: '#fff',
     textAlign: 'center',
   },
-  headerSubtitle: {
-    color: '#fff',
+  subtitle: {
     fontSize: 16,
+    color: '#fff',
     textAlign: 'center',
     marginTop: 8,
     opacity: 0.9,
@@ -124,7 +117,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
-    marginTop: 32,
   },
   emptyStateText: {
     marginTop: 16,
@@ -133,7 +125,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   favoritesList: {
-    padding: 16,
-    gap: 8,
+    paddingTop: 16,
+    paddingBottom: 16,
   },
 });
