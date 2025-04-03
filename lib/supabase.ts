@@ -23,6 +23,7 @@ export interface Alimento {
 export const foodDB = {
   async getFoodByBarcode(codigo: string): Promise<Alimento | null> {
     try {
+      console.log('Iniciando búsqueda para código:', codigo);
       const { data, error } = await supabase
         .from('alimentos')
         .select('*')
@@ -30,13 +31,16 @@ export const foodDB = {
         .single();
       
       if (error) {
+        console.log('Error de Supabase:', error);
         if (error.code === 'PGRST116') {
           // No rows found is expected when scanning new products
+          console.log('No se encontró el producto en la base de datos');
           return null;
         }
         throw error;
       }
       
+      console.log('Datos encontrados:', data);
       return data;
     } catch (error) {
       console.error('Error fetching alimento:', error);

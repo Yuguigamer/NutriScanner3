@@ -35,8 +35,13 @@ export function BarcodeScanner({ onScan, onClose }: BarcodeScannerProps) {
     setIsSearching(true);
     Vibration.vibrate(100); // Haptic feedback
 
+    console.log('Código de barras escaneado:', data);
+    console.log('Tipo de código:', type);
+
     try {
+      console.log('Buscando en la base de datos...');
       const alimento = await foodDB.getFoodByBarcode(data);
+      console.log('Resultado de la búsqueda:', JSON.stringify(alimento));
       onScan(alimento, data);
     } catch (error) {
       console.error('Error al buscar el alimento:', error);

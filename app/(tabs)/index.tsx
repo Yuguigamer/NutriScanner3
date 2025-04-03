@@ -134,11 +134,28 @@ export default function TabOneScreen() {
     
     if (alimento) {
       setSelectedAlimento(alimento);
+      setSearchResults([alimento]);
+      // No limpiamos la búsqueda para mantener el resultado visible
     } else {
-      router.push({
-        pathname: "/agregar-alimento",
-        params: { barcode }
-      });
+      Alert.alert(
+        'Producto no encontrado',
+        '¿Deseas agregar este producto a la base de datos?',
+        [
+          {
+            text: 'No',
+            style: 'cancel'
+          },
+          {
+            text: 'Sí',
+            onPress: () => {
+              router.push({
+                pathname: '/agregar-alimento',
+                params: { barcode }
+              });
+            }
+          }
+        ]
+      );
     }
   };
 

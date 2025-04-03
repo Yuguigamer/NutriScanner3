@@ -7,6 +7,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Alimento } from '@/lib/supabase';
 import { ProductDetailCard } from '@/components/ProductDetailCard';
 import { useFocusEffect } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 
 interface FavoriteItem extends Alimento {}
 
@@ -25,7 +26,6 @@ export default function FavoritosScreen() {
     }
   }, []);
 
-  // Usar useFocusEffect para recargar favoritos cada vez que la pantalla obtiene el foco
   useFocusEffect(
     useCallback(() => {
       loadFavorites();
@@ -44,9 +44,21 @@ export default function FavoritosScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      <View style={styles.header}>
+        <LinearGradient
+          colors={['#4CAF50', '#2E7D32']}
+          style={styles.headerGradient}
+        >
+          <View style={styles.headerContent}>
+            <ThemedText style={styles.headerTitle}>Mis Favoritos</ThemedText>
+            <ThemedText style={styles.headerSubtitle}>
+              Tus alimentos guardados
+            </ThemedText>
+          </View>
+        </LinearGradient>
+      </View>
+
       <ScrollView style={styles.scrollView}>
-        <ThemedText type="title" style={styles.title}>Mis Favoritos</ThemedText>
-        
         {favorites.length === 0 ? (
           <ThemedView style={styles.emptyState}>
             <Ionicons name="heart-outline" size={48} color="#666" />
@@ -77,21 +89,42 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollView: {
+  header: {
+    height: 150,
+    overflow: 'hidden',
+  },
+  headerGradient: {
     flex: 1,
   },
-  title: {
-    fontSize: 24,
+  headerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 32,
     fontWeight: 'bold',
-    marginHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 16,
+    textAlign: 'center',
+  },
+  headerSubtitle: {
+    color: '#fff',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 8,
+    opacity: 0.9,
+  },
+  scrollView: {
+    flex: 1,
   },
   emptyState: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
+    marginTop: 32,
   },
   emptyStateText: {
     marginTop: 16,
@@ -100,6 +133,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   favoritesList: {
-    paddingBottom: 16,
+    padding: 16,
+    gap: 8,
   },
 });

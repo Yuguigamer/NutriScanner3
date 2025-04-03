@@ -5,6 +5,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
+import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 
 // Lista de avatares predefinidos
 const AVATARS: Record<number, ImageSourcePropType> = {
@@ -102,6 +104,7 @@ export default function PerfilScreen() {
     try {
       setIsSigningOut(true);
       await signOut();
+      router.replace('/(auth)/login');
     } catch (error) {
       console.error('Error al cerrar sesión:', error);
       Alert.alert('Error', 'No se pudo cerrar sesión. Por favor intenta de nuevo.');
@@ -131,7 +134,10 @@ export default function PerfilScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <View style={styles.profileHeader}>
+      <LinearGradient
+        colors={['#4CAF50', '#1B5E20']}
+        style={styles.profileHeader}
+      >
         <TouchableOpacity 
           style={styles.avatarContainer}
           onPress={openEditModal}
@@ -148,11 +154,11 @@ export default function PerfilScreen() {
         <View style={styles.userInfo}>
           <ThemedText style={styles.name}>{profile?.name || 'Usuario'}</ThemedText>
           <View style={styles.emailContainer}>
-            <Ionicons name="mail-outline" size={16} color="#666" />
-            <ThemedText style={styles.email}>{profile?.email}</ThemedText>
+            <Ionicons name="mail-outline" size={16} color="#fff" />
+            <ThemedText style={[styles.email, { color: '#fff' }]}>{profile?.email}</ThemedText>
           </View>
         </View>
-      </View>
+      </LinearGradient>
 
       <View style={styles.menuContainer}>
         <TouchableOpacity style={styles.menuItem} onPress={openEditModal}>
@@ -246,62 +252,61 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   profileHeader: {
-    alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 40,
-    width: '100%',
+    padding: 24,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
   avatarContainer: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     marginBottom: 16,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    overflow: 'hidden',
-    backgroundColor: '#f0f0f0',
-    elevation: 3,
+    alignSelf: 'center',
+    backgroundColor: '#fff',
+    elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    position: 'relative',
-  },
-  editOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
+    shadowRadius: 4,
   },
   avatar: {
     width: '100%',
     height: '100%',
+    borderRadius: 50,
+  },
+  editOverlay: {
+    position: 'absolute',
+    right: -4,
+    bottom: -4,
+    backgroundColor: '#4CAF50',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
   userInfo: {
     alignItems: 'center',
-    width: '100%',
-    paddingHorizontal: 20,
   },
   name: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 8,
-    textAlign: 'center',
+    color: '#fff',
   },
   emailContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
+    gap: 8,
   },
   email: {
     fontSize: 16,
-    color: '#666',
-    marginLeft: 8,
+    opacity: 0.9,
   },
   menuContainer: {
     marginBottom: 30,
