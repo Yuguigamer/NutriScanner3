@@ -8,6 +8,7 @@ import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Alimento } from '@/lib/supabase';
 import { foodDB } from '@/lib/supabase';
+import { router } from 'expo-router';
 
 interface FavoriteItem {
   id: string;
@@ -139,7 +140,7 @@ export default function TabOneScreen() {
           {
             text: 'Sí',
             onPress: () => {
-              console.log('Navegar a agregar alimento con código:', barcode);
+              router.push(`/agregar-alimento?barcode=${barcode}`);
             }
           }
         ]

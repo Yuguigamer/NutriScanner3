@@ -22,18 +22,26 @@ export interface Alimento {
 
 export const foodDB = {
   async getFoodByBarcode(codigo: string): Promise<Alimento | null> {
-    const { data, error } = await supabase
-      .from('alimentos')
-      .select('*')
-      .eq('codigo', codigo)
-      .single();
-    
-    if (error) {
+    try {
+      const { data, error } = await supabase
+        .from('alimentos')
+        .select('*')
+        .eq('codigo', codigo)
+        .single();
+      
+      if (error) {
+        if (error.code === 'PGRST116') {
+          // No rows found is expected when scanning new products
+          return null;
+        }
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
       console.error('Error fetching alimento:', error);
-      return null;
+      throw error;
     }
-    
-    return data;
   },
 
   async addFood(alimento: Omit<Alimento, 'id' | 'created_at'>): Promise<Alimento | null> {
