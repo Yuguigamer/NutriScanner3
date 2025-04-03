@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, TouchableOpacity, View, Image, ImageSourcePropType, Alert, Modal, TextInput, ScrollView } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
@@ -31,34 +31,58 @@ export default function PerfilScreen() {
   const [editingName, setEditingName] = useState('');
   const [editingAvatarIndex, setEditingAvatarIndex] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
-
-  // Memorizar la consulta del perfil
-  const loadProfile = useMemo(() => async () => {
-    try {
-      if (!session?.user) return;
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('name, email, avatar_index')
-        .eq('id', session.user.id)
-        .single();
-
-      if (error) {
-        console.error('Error loading profile:', error);
-        return;
-      }
-
-      setProfile(data);
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [session?.user?.id]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
+    if (!session?.user) return;
+
+    // Cargar perfil inicial
+    const loadProfile = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('name, email, avatar_index')
+          .eq('id', session.user.id)
+          .single();
+
+        if (error) {
+          console.error('Error loading profile:', error);
+          return;
+        }
+
+        setProfile(data);
+      } catch (error) {
+        console.error('Error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     loadProfile();
-  }, [loadProfile]);
+
+    // Suscribirse a cambios en el perfil
+    const subscription = supabase
+      .channel('profile_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles',
+          filter: `id=eq.${session.user.id}`,
+        },
+        (payload) => {
+          if (payload.new) {
+            setProfile(payload.new as Profile);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [session?.user?.id]);
 
   const handleUpdateProfile = async () => {
     if (!session?.user || !editingName.trim()) {
@@ -77,13 +101,6 @@ export default function PerfilScreen() {
         .eq('id', session.user.id);
 
       if (error) throw error;
-
-      // Actualizar el estado local
-      setProfile(prev => prev ? {
-        ...prev,
-        name: editingName.trim(),
-        avatar_index: editingAvatarIndex,
-      } : null);
 
       setIsEditModalVisible(false);
       Alert.alert('Éxito', 'Perfil actualizado correctamente');
@@ -105,6 +122,32 @@ export default function PerfilScreen() {
       Alert.alert('Error', 'No se pudo cerrar sesión. Por favor intenta de nuevo.');
     } finally {
       setIsSigningOut(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    if (isRefreshing || !session?.user) return;
+    
+    setIsRefreshing(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('name, email, avatar_index')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error) {
+        console.error('Error refreshing profile:', error);
+        return;
+      }
+
+      setProfile(data);
+      Alert.alert('Éxito', 'Perfil actualizado correctamente');
+    } catch (error) {
+      console.error('Error:', error);
+      Alert.alert('Error', 'No se pudo actualizar el perfil');
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -168,14 +211,25 @@ export default function PerfilScreen() {
         </View>
 
         <View style={styles.menuContainer}>
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="settings-outline" size={24} color="#666" />
-            <ThemedText style={styles.menuText}>Configuración</ThemedText>
+          <TouchableOpacity 
+            style={styles.menuItem}
+            onPress={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <Ionicons 
+              name={isRefreshing ? "sync-circle" : "sync-outline"} 
+              size={24} 
+              color="#666"
+              style={isRefreshing ? styles.spinningIcon : undefined}
+            />
+            <ThemedText style={styles.menuText}>
+              {isRefreshing ? 'Actualizando...' : 'Actualizar Perfil'}
+            </ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="help-circle-outline" size={24} color="#666" />
-            <ThemedText style={styles.menuText}>Ayuda</ThemedText>
+            <Ionicons name="settings-outline" size={24} color="#666" />
+            <ThemedText style={styles.menuText}>Configuración</ThemedText>
           </TouchableOpacity>
 
           <TouchableOpacity 
@@ -455,5 +509,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 16,
     fontWeight: '600',
+  },
+  spinningIcon: {
+    transform: [{ rotate: '360deg' }],
   },
 })

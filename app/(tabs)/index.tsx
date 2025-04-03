@@ -130,32 +130,36 @@ export default function TabOneScreen() {
   }, [searchQuery]);
 
   const handleBarcodeScan = async (alimento: Alimento | null, barcode: string) => {
-    setIsScannerVisible(false);
-    
     if (alimento) {
       setSelectedAlimento(alimento);
       setSearchResults([alimento]);
-      // No limpiamos la búsqueda para mantener el resultado visible
+      setSearchQuery('');
+      setTimeout(() => {
+        setIsScannerVisible(false);
+      }, 500);
     } else {
-      Alert.alert(
-        'Producto no encontrado',
-        '¿Deseas agregar este producto a la base de datos?',
-        [
-          {
-            text: 'No',
-            style: 'cancel'
-          },
-          {
-            text: 'Sí',
-            onPress: () => {
-              router.push({
-                pathname: '/agregar-alimento',
-                params: { barcode }
-              });
+      setIsScannerVisible(false);
+      setTimeout(() => {
+        Alert.alert(
+          'Producto no encontrado',
+          '¿Deseas agregar este producto a la base de datos?',
+          [
+            {
+              text: 'No',
+              style: 'cancel'
+            },
+            {
+              text: 'Sí',
+              onPress: () => {
+                router.push({
+                  pathname: '/agregar-alimento',
+                  params: { barcode }
+                });
+              }
             }
-          }
-        ]
-      );
+          ]
+        );
+      }, 500);
     }
   };
 

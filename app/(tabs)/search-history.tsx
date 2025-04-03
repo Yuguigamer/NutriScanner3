@@ -5,11 +5,12 @@ import { ThemedText } from "@/components/ThemedText"
 import { Ionicons } from "@expo/vector-icons"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 
 const STORAGE_KEY = "recent_searches"
 const MAX_RECENT_SEARCHES = 10
 
-export default function SearchHistory({ onSelectSearch }: { onSelectSearch: (query: string) => void }) {
+export default function SearchHistory() {
   const [recentSearches, setRecentSearches] = useState<string[]>([])
 
   useEffect(() => {
@@ -59,6 +60,13 @@ export default function SearchHistory({ onSelectSearch }: { onSelectSearch: (que
     }
   }
 
+  const onSelectSearch = (search: string) => {
+    router.push({
+      pathname: '/(tabs)',
+      params: { search }
+    });
+  };
+
   return (
     <ThemedView style={styles.container}>
       <LinearGradient
@@ -86,7 +94,10 @@ export default function SearchHistory({ onSelectSearch }: { onSelectSearch: (que
         <ScrollView style={styles.searchList}>
           {recentSearches.map((search, index) => (
             <View key={index} style={styles.searchItem}>
-              <TouchableOpacity style={styles.searchContent} onPress={() => onSelectSearch(search)}>
+              <TouchableOpacity 
+                style={styles.searchContent} 
+                onPress={() => onSelectSearch(search)}
+              >
                 <Ionicons name="time-outline" size={24} color="#666" style={styles.searchIcon} />
                 <ThemedText style={styles.searchText}>{search}</ThemedText>
               </TouchableOpacity>

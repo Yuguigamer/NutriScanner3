@@ -49,49 +49,54 @@ export const foodDB = {
   },
 
   async addFood(alimento: Omit<Alimento, 'id' | 'created_at'>): Promise<Alimento | null> {
-    const { data, error } = await supabase
-      .from('alimentos')
-      .insert([alimento])
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Error adding alimento:', error);
-      return null;
+    try {
+      const { data, error } = await supabase
+        .from('alimentos')
+        .insert([alimento])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return data;
+    } catch (error) {
+      console.error('Error adding food:', error);
+      throw error;
     }
-    
-    return data;
   },
 
   async searchFoods(query: string): Promise<Alimento[]> {
-    const { data, error } = await supabase
-      .from('alimentos')
-      .select('id, nombre, codigo, calorias, proteinas, carbohidratos, grasas, azucares, fibra, sodio, imagen_url, created_at')
-      .ilike('nombre', `%${query}%`)
-      .order('nombre')
-      .limit(10);
-    
-    if (error) {
-      console.error('Error searching alimentos:', error);
-      return [];
+    try {
+      const { data, error } = await supabase
+        .from('alimentos')
+        .select('*')
+        .textSearch('nombre', query)
+        .limit(10);
+
+      if (error) throw error;
+
+      return data || [];
+    } catch (error) {
+      console.error('Error searching foods:', error);
+      throw error;
     }
-    
-    return data;
   },
 
   async updateFood(id: string, updates: Partial<Alimento>): Promise<Alimento | null> {
-    const { data, error } = await supabase
-      .from('alimentos')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('Error updating alimento:', error);
-      return null;
+    try {
+      const { data, error } = await supabase
+        .from('alimentos')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return data;
+    } catch (error) {
+      console.error('Error updating food:', error);
+      throw error;
     }
-    
-    return data;
   }
 };
