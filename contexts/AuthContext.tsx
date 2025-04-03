@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { Session } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 
 type AuthContextType = {
@@ -20,20 +20,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    router.replace('/login');
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      router.replace('/(auth)/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      throw error;
+    }
+  };
+
+  const createProfileIfNeeded = async (userId: string) => {
+    try {
+      // Verificar si ya existe un perfil
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .single();
+
+      if (!existingProfile) {
+        // Si no existe perfil, obtener los metadatos del usuario
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.user_metadata?.name) {
+          // Crear el perfil con los datos guardados durante el registro
+          await supabase.from('profiles').insert([
+            {
+              id: userId,
+              name: user.user_metadata.name,
+              email: user.email,
+            }
+          ]);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking/creating profile:', error);
+    }
   };
 
   useEffect(() => {
     // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session?.user) {
+        createProfileIfNeeded(session.user.id);
+      }
       setLoading(false);
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
+      if (session?.user) {
+        await createProfileIfNeeded(session.user.id);
+      }
       setLoading(false);
     });
 
