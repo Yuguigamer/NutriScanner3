@@ -90,3 +90,23 @@ export const foodDB = {
     return data;
   }
 };
+
+export const createAlimentosBucket = async () => {
+  try {
+    const { error } = await supabase.storage.createBucket('alimentos', {
+      public: true,
+      fileSizeLimit: 1024 * 1024 * 2, // 2MB limit
+    });
+
+    // Ignoramos el error si el bucket ya existe
+    if (error && !error.message.includes('already exists')) {
+      console.error('Error creating bucket:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error:', error);
+    return false;
+  }
+};
