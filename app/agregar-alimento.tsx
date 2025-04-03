@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { StyleSheet, View, TextInput, TouchableOpacity, Alert, ScrollView, Image, Platform } from 'react-native';
 import { ThemedView } from '@/components/ThemedView';
 import { ThemedText } from '@/components/ThemedText';
-import { supabase, foodDB, createAlimentosBucket } from '@/lib/supabase';
+import { supabase, foodDB } from '@/lib/supabase';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -48,10 +48,6 @@ export default function AgregarAlimentoScreen() {
     sodio: '',
   });
 
-  useEffect(() => {
-    // Intentar crear el bucket al montar el componente
-    createAlimentosBucket().catch(console.error);
-  }, []);
 
   const uploadImage = async (uri: string): Promise<string | null> => {
     try {
@@ -348,8 +344,9 @@ export default function AgregarAlimentoScreen() {
               />
             </View>
           </View>
-
-          <View style={styles.inputGroup}>
+          
+          <View style={styles.row}>
+          <View style={[styles.inputGroup, styles.halfWidth]}>
             <ThemedText style={styles.label}>Azúcares (g)</ThemedText>
             <TextInput
               style={styles.input}
@@ -361,7 +358,7 @@ export default function AgregarAlimentoScreen() {
             />
           </View>
 
-          <View style={styles.inputGroup}>
+          <View style={[styles.inputGroup, styles.halfWidth]}>
             <ThemedText style={styles.label}>Fibra (g)</ThemedText>
             <TextInput
               style={styles.input}
@@ -371,6 +368,7 @@ export default function AgregarAlimentoScreen() {
               placeholderTextColor="#999"
               keyboardType="numeric"
             />
+          </View>
           </View>
 
           <View style={styles.inputGroup}>
